@@ -1,0 +1,21 @@
+{
+  "name": "purescript-verbal-expressions",
+  "moduleType": [
+    "node"
+  ],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "output"
+  ],
+  "dependencies": {
+    "purescript-strings": "^0.7.1",
+    "purescript-free": "^0.9.1",
+    "purescript-transformers": "^0.8.4"
+  },
+  "devDependencies": {
+    "purescript-console": "^0.1.0",
+    "purescript-assert": "~0.1.1"
+  }
+}
