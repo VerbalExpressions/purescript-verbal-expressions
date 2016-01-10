@@ -3,6 +3,10 @@
   "moduleType": [
     "node"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sharkdp/purescript-verbal-expressions.git"
+  },
   "ignore": [
     "**/.*",
     "node_modules",
