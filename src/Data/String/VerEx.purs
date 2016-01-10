@@ -4,6 +4,7 @@ module Data.String.VerEx
   ( VerExF()
   , VerExM()
   , VerEx()
+  , CaptureGroup()
   -- VerEx combinators
   , startOfLine'
   , startOfLine
@@ -21,6 +22,9 @@ module Data.String.VerEx
   , word
   , whitespace
   , withAnyCase
+  -- Capture groups
+  , capture
+  , findAgain
   -- Conversion to Regex
   , toRegex
   -- Pattern matching
@@ -32,9 +36,11 @@ import Prelude hiding (add)
 
 import Control.Apply ((*>))
 import Control.Monad.Free (Free(), liftF, foldFree)
-import Control.Monad.State (State(), modify, execState)
+import Control.Monad.State (State(), modify, get, put, execState)
 
 import Data.String.Regex as R
+
+newtype CaptureGroup = CaptureGroup Int
 
 -- | The grammar for Verbal Expressions, used internally.
 data VerExF a
@@ -42,6 +48,7 @@ data VerExF a
   | StartOfLine Boolean a
   | EndOfLine Boolean a
   | AddFlags String a
+  | Capture VerEx (CaptureGroup -> a)
 
 -- | The free monad over the `VerExF` type constructor.
 type VerExM = Free VerExF
@@ -103,7 +110,7 @@ something = add "(?:.+)"
 
 -- | Any of the given characters.
 anyOf :: String -> VerExM Unit
-anyOf str = add $ "[" <> escape str <> "]"
+anyOf str = add $ "(?:[" <> escape str <> "])"
 
 -- | Add universal line break expression.
 lineBreak :: VerExM Unit
@@ -115,32 +122,43 @@ br = lineBreak
 
 -- | Add expression to match a tab character.
 tab :: VerExM Unit
-tab = add "(\\t)"
+tab = add "(?:\\t)"
 
 -- | Adds an expression to match a word.
 word :: VerExM Unit
-word = add "(\\w+)"
+word = add "(?:\\w+)"
 
 -- | Any whitespace character
 whitespace :: VerExM Unit
-whitespace = add "(\\s)"
+whitespace = add "\\s"
 
 -- | Enable case-insensitive matching
 withAnyCase :: VerExM Unit
 withAnyCase = addFlags "i"
 
+-- | Add a new capture group which matches the given VerEx. Returns the index
+-- | of the capture group.
+capture :: VerEx -> VerExM CaptureGroup
+capture inner = liftF $ Capture inner id
+
+-- | Match a previous capture group again (back reference).
+findAgain :: CaptureGroup -> VerExM Unit
+findAgain (CaptureGroup ind) = add $ "(?:\\" <> show ind <> ")"
+
 type VerExState =
   { startOfLine :: Boolean
   , endOfLine :: Boolean
   , flags :: String
-  , pattern :: String }
+  , pattern :: String
+  , captureGroupIndex :: Int }
 
 empty :: VerExState
 empty =
   { startOfLine: false
   , endOfLine: false
   , flags: ""
-  , pattern: "" }
+  , pattern: ""
+  , captureGroupIndex: 1 }
 
 -- | Natural transformation from `VerExF` to `State VerExState`.
 toVerExState :: forall a. VerExF a -> State VerExState a
@@ -152,6 +170,11 @@ toVerExState (EndOfLine flag a) = const a <$>
   modify (\s -> s { endOfLine = flag })
 toVerExState (AddFlags flags a) = const a <$>
   modify (\s -> s { flags = s.flags <> flags })
+toVerExState (Capture inner f) = f <$> do
+  s <- get
+  put s { pattern = s.pattern <> "(" <> toString inner <> ")"
+        , captureGroupIndex = s.captureGroupIndex + 1 }
+  return (CaptureGroup s.captureGroupIndex)
 
 -- | Convert a Verbal Expression to a Regular Expression.
 toRegex :: VerEx -> R.Regex
@@ -165,11 +188,17 @@ toRegex verex = R.regex (prefix <> vs.pattern <> suffix) flags
     prefix = if vs.startOfLine then "^" else ""
     suffix = if vs.endOfLine then "$" else ""
 
+-- | Convert the pattern (without the flags) of a VerEx to a `String`.
+toString :: VerEx -> String
+toString verex = R.source (toRegex verex)
+
 -- | Check whether a given `String` matches the Verbal Expression.
 test :: VerEx -> String -> Boolean
 test verex = R.test (toRegex verex)
 
--- | Replace occurences of the `VerEx` with the given replacement.
+-- | Replace occurences of the `VerEx` with the first string. The replacement
+-- | string can include special replacement patterns escaped with `"$"`
+-- | See [reference](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace).
 replace :: VerEx -> String -> String -> String
 replace verex = R.replace (toRegex verex')
   where verex' = verex *> addFlags "g"

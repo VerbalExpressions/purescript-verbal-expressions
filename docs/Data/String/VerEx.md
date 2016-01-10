@@ -3,6 +3,12 @@
 This module contains a PureScript implementation of
 [Verbal Expressions](https://github.com/VerbalExpressions/JSVerbalExpressions).
 
+#### `CaptureGroup`
+
+``` purescript
+newtype CaptureGroup
+```
+
 #### `VerExF`
 
 ``` purescript
@@ -158,6 +164,23 @@ withAnyCase :: VerExM Unit
 
 Enable case-insensitive matching
 
+#### `capture`
+
+``` purescript
+capture :: VerEx -> VerExM CaptureGroup
+```
+
+Add a new capture group which matches the given VerEx. Returns the index
+of the capture group.
+
+#### `findAgain`
+
+``` purescript
+findAgain :: CaptureGroup -> VerExM Unit
+```
+
+Match a previous capture group again (back reference).
+
 #### `toRegex`
 
 ``` purescript
@@ -180,6 +203,8 @@ Check whether a given `String` matches the Verbal Expression.
 replace :: VerEx -> String -> String -> String
 ```
 
-Replace occurences of the `VerEx` with the given replacement.
+Replace occurences of the `VerEx` with the first string. The replacement
+string can include special replacement patterns escaped with `"$"`
+See [reference](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace).
 
 

@@ -85,7 +85,24 @@ main = do
   assert $ test (withAnyCase *> find "a") "A"
   assert $ test (withAnyCase *> find "a") "a"
 
+  log "capture"
+  let vCapture = do
+        firstWord <- capture word
+        whitespace
+        capture word
+        whitespace
+        findAgain firstWord
+  assert $ test vCapture "foo bar foo"
+  assert $ not $ test vCapture "foo bar baz"
+
   log "replace"
   let inBrackets = find "(" *> anythingBut ")" *> find ")"
   assert $ (== "Start (...) Middle (...) End") $
     replace inBrackets "(...)" "Start (everything in here) Middle (another) End"
+
+  let vSwitchWords = do
+        withAnyCase
+        startOfLine
+        capture word *> whitespace *> capture word
+        endOfLine
+  assert $ replace vSwitchWords "$2 $1" "Foo Bar" == "Bar Foo"
