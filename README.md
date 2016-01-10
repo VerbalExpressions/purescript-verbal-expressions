@@ -14,7 +14,7 @@ url = do
   possibly "www."
   anythingBut " "
   endOfLine
-  
+
 > test url "https://www.google.com"
 true
 ```
@@ -27,3 +27,8 @@ Using Functor/Applicative notation (note that special characters are properly es
 ```
 
 For more examples, see the [tests](test/Main.purs).
+
+## Installation
+```
+bower install purescript-verbal-expressions
+```
