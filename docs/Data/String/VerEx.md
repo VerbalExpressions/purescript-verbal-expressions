@@ -85,6 +85,14 @@ possibly :: String -> VerExM Unit
 Add a string to the expression that might appear once (or not).
 This combinator is called `maybe` in the original API.
 
+#### `possiblyV`
+
+``` purescript
+possiblyV :: VerEx -> VerExM Unit
+```
+
+Like `possibly`, but works on a sub-VerEx.
+
 #### `anything`
 
 ``` purescript
@@ -117,6 +125,22 @@ anyOf :: String -> VerExM Unit
 
 Any of the given characters.
 
+#### `some`
+
+``` purescript
+some :: VerEx -> VerExM Unit
+```
+
+Repeat the inner expression one or more times.
+
+#### `many`
+
+``` purescript
+many :: VerEx -> VerExM Unit
+```
+
+Repeat the inner expression zero or more times.
+
 #### `lineBreak`
 
 ``` purescript
@@ -124,14 +148,6 @@ lineBreak :: VerExM Unit
 ```
 
 Add universal line break expression.
-
-#### `br`
-
-``` purescript
-br :: VerExM Unit
-```
-
-Shorthand for `lineBreak`.
 
 #### `tab`
 

@@ -13,10 +13,13 @@ module Data.String.VerEx
   , endOfLine
   , find
   , possibly
+  , possiblyV
   , anything
   , anythingBut
   , something
   , anyOf
+  , some
+  , many
   , lineBreak
   , tab
   , word
@@ -53,6 +56,7 @@ data VerExF a
   | StartOfLine Boolean a
   | EndOfLine Boolean a
   | AddFlags String a
+  | AddSubexpression VerEx a
   | Capture VerEx (CaptureGroup -> a)
 
 -- | The free monad over the `VerExF` type constructor.
@@ -87,6 +91,10 @@ endOfLine = endOfLine' true
 addFlags :: String -> VerExM Unit
 addFlags flags = liftF $ AddFlags flags unit
 
+-- | Append a sub-expression in a non-capturing group
+addSubexpression :: VerEx -> VerExM Unit
+addSubexpression inner = liftF $ AddSubexpression inner unit
+
 -- | Escape special regex characters
 escape :: String -> String
 escape = R.replace (R.regex "([\\].|*?+(){}^$\\\\:=[])" g) "\\$&"
@@ -105,6 +113,10 @@ find str = add $ "(?:" <> escape str <> ")"
 possibly :: String -> VerExM Unit
 possibly str = add $ "(?:" <> escape str <> ")?"
 
+-- | Like `possibly`, but works on a sub-VerEx.
+possiblyV :: VerEx -> VerExM Unit
+possiblyV sub = addSubexpression sub *> add "?"
+
 -- | Match any charcter, any number of times.
 anything :: VerExM Unit
 anything = add "(?:.*)"
@@ -120,6 +132,14 @@ something = add "(?:.+)"
 -- | Any of the given characters.
 anyOf :: String -> VerExM Unit
 anyOf str = add $ "(?:[" <> escape str <> "])"
+
+-- | Repeat the inner expression one or more times.
+some :: VerEx -> VerExM Unit
+some pattern = addSubexpression pattern *> add "+"
+
+-- | Repeat the inner expression zero or more times.
+many :: VerEx -> VerExM Unit
+many pattern = addSubexpression pattern *> add "*"
 
 -- | Add universal line break expression.
 lineBreak :: VerExM Unit
@@ -183,6 +203,8 @@ toVerExState (EndOfLine flag a) = const a <$>
   modify (\s -> s { endOfLine = flag })
 toVerExState (AddFlags flags a) = const a <$>
   modify (\s -> s { flags = s.flags <> flags })
+toVerExState (AddSubexpression inner a) = const a <$>
+  modify (\s -> s { pattern = s.pattern <> "(?:" <> toString inner <> ")" })
 toVerExState (Capture inner f) = f <$> do
   s <- get
   put s { pattern = s.pattern <> "(" <> toString inner <> ")"

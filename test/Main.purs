@@ -46,6 +46,19 @@ main = do
   assert $ test vPossibly "abc"
   assert $ test vPossibly "acc"
 
+  log "possiblyV"
+  let vPossiblyV = do
+        find "start"
+        some whitespace
+        possiblyV do
+          find "middle"
+          some whitespace
+        find "end"
+  assert $ test vPossiblyV "start   end"
+  assert $ test vPossiblyV "start  middle    end"
+  assert $ not $ test vPossiblyV "start  other    end"
+  assert $ not $ test vPossiblyV "startend"
+
   log "anything"
   assert $ test anything "a"
   assert $ test anything ""
@@ -65,6 +78,18 @@ main = do
   assert $ test vAnyOf "ax"
   assert $ test vAnyOf "az"
   assert $ not $ test vAnyOf "ab"
+
+  log "some"
+  let vSome = startOfLine *> some (find ".") *> endOfLine
+  assert $ test vSome "."
+  assert $ test vSome "......"
+  assert $ not $ test vSome ""
+
+  log "many"
+  let vMany = startOfLine *> many (find ".") *> endOfLine
+  assert $ test vMany "."
+  assert $ test vMany "......"
+  assert $ test vMany ""
 
   log "lineBreak"
   let vLineBreak = startOfLine *> find "abc" *> lineBreak *> find "def"
