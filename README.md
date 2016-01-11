@@ -44,17 +44,30 @@ swap = do
 
   replaceWith (insert second <> insert blank <> insert first)
 
-> replaceM swap "Foo   Bar"
+> replace swap "Foo   Bar"
 "Bar   Foo"
 ```
 Note that `replaceWith` is just an alias for `return`.
 
-### Using Applicative notation
-Note that special characters like `[` and `]` are properly escaped for us:
+### Matching
 ``` purs
-> let pattern = find "[" *> anythingBut "]" *> find "]"
-> replace pattern "---" "Censor [all!!] things [inside(42)] brackets"
-"Censor --- things --- brackets"
+matchNumber = match do
+  startOfLine
+  intPart <- capture (some digit)
+  floatPart <- possiblyV do
+    find "."
+    capture (some digit)
+  endOfLine
+  return [intPart, floatPart]
+
+> matchNumber "3.14"
+Just [Just "3", Just "14"]
+
+> matchNumber "42"
+Just [Just "42", Nothing]
+
+> matchNumber "."
+Nothing
 ```
 
 For more examples, see the [tests](test/Main.purs).
