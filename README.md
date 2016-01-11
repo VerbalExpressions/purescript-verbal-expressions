@@ -6,18 +6,24 @@ A free monad implementation of [Verbal Expressions](https://github.com/VerbalExp
 
 ### Using do-notation to construct verbal expressions
 ``` purs
-url :: VerEx
-url = do
+number :: VerEx
+number = do
   startOfLine
-  find "http"
-  possibly "s"
-  find "://"
-  possibly "www."
-  anythingBut " "
+  possibly (anyOf "+-")
+  some digit
+  possibly do
+    find "."
+    some digit
   endOfLine
 
-> test url "https://www.google.com"
+> test number "42"
 true
+
+> test number "+3.14"
+true
+
+> test number "3."
+false
 ```
 
 ### Capture groups and back references
@@ -32,6 +38,27 @@ pattern = do
   findAgain firstWord
 ```
 This VerEx matches "foo bar *foo*" but not "foo bar *baz*".
+
+### Matching
+``` purs
+number = match do
+  startOfLine
+  intPart <- capture (some digit)
+  floatPart <- possibly do
+    find "."
+    capture (some digit)
+  endOfLine
+  return [intPart, floatPart]
+
+> match "3.14"
+Just [Just "3", Just "14"]
+
+> match "42"
+Just [Just "42", Nothing]
+
+> test number "."
+false
+```
 
 ### Replacing with named groups
 Here, we use the result of the monadic action to return a replacement string with 'named' capture groups:
@@ -48,27 +75,6 @@ swapWords = replace do
 "Bar   Foo"
 ```
 Note that `replaceWith` is just an alias for `return`.
-
-### Matching with named groups
-``` purs
-number = match do
-  startOfLine
-  intPart <- capture (some digit)
-  floatPart <- possiblyV do
-    find "."
-    capture (some digit)
-  endOfLine
-  return [intPart, floatPart]
-
-> match "3.14"
-Just [Just "3", Just "14"]
-
-> match "42"
-Just [Just "42", Nothing]
-
-> test number "."
-false
-```
 
 For more examples, see the [tests](test/Main.purs).
 
