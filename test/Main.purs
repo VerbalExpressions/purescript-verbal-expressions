@@ -22,6 +22,16 @@ url = do
 
   return [protocol, domain]
 
+number :: VerEx
+number = do
+  startOfLine
+  possibly (anyOf "+-")
+  some digit
+  possibly do
+    find "."
+    some digit
+  endOfLine
+
 main = do
   log "URL example"
   let isUrl = test url
@@ -110,14 +120,7 @@ main = do
 
   log "digit"
   assert $ test (find "(" *> some digit *> find ")") "(0123456789)"
-  let isNumber = test do
-        startOfLine
-        possibly (anyOf "+-")
-        some digit
-        possibly do
-          find "."
-          some digit
-        endOfLine
+  let isNumber = test number
   assert $ isNumber "1"
   assert $ isNumber "42"
   assert $ isNumber "+42"
@@ -190,7 +193,7 @@ main = do
 
   assert $ matchNumber "3.14" == Just [Just "3", Just "14"]
   assert $ matchNumber "42" == Just [Just "42", Nothing]
-  assert $ matchNumber "." == Nothing
+  assert $ not $ test number "."
 
   let matchNested = match do
         a <- capture digit
