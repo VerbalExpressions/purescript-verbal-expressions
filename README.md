@@ -56,8 +56,8 @@ Just [Just "3", Just "14"]
 > match number "42"
 Just [Just "42", Nothing]
 
-> test number "."
-false
+> match number "."
+Nothing
 ```
 
 ### Replacing
