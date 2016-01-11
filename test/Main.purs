@@ -42,25 +42,26 @@ main = do
   assert $ test (find "^)(.$[") "^)(.$["
 
   log "possibly"
-  let vPossibly = startOfLine *> find "a" *> possibly "b"
-  assert $ test vPossibly "abc"
-  assert $ test vPossibly "acc"
+  let vPossibly = startOfLine *> find "a" *> possibly "..." *> find "b"
+  assert $ test vPossibly "ab"
+  assert $ test vPossibly "a...b"
 
   log "possiblyV"
   let vPossiblyV = do
-        find "start"
-        some whitespace
+        find "a"
         possiblyV do
-          find "middle"
-          some whitespace
-        find "end"
-  assert $ test vPossiblyV "start   end"
-  assert $ test vPossiblyV "start  middle    end"
-  assert $ not $ test vPossiblyV "start  other    end"
-  assert $ not $ test vPossiblyV "startend"
+          find "("
+          some (find "bc")
+          find ")"
+        find "d"
+  assert $ test vPossiblyV "ad"
+  assert $ test vPossiblyV "a(bc)d"
+  assert $ test vPossiblyV "a(bcbcbcbc)d"
+  assert $ not $ test vPossiblyV "a()d"
+  assert $ not $ test vPossiblyV "abcd"
 
   log "anything"
-  assert $ test anything "a"
+  assert $ test anything "$(#!"
   assert $ test anything ""
 
   log "anythingBut"
@@ -70,7 +71,7 @@ main = do
   assert $ not $ test vAnythingBut "a"
 
   log "something"
-  assert $ test something "a"
+  assert $ test something "$(#!"
   assert $ not $ test something ""
 
   log "anyOf"
@@ -80,21 +81,25 @@ main = do
   assert $ not $ test vAnyOf "ab"
 
   log "some"
-  let vSome = startOfLine *> some (find ".") *> endOfLine
+  let vSome = startOfLine *> some (anyOf ".[]") *> endOfLine
   assert $ test vSome "."
-  assert $ test vSome "......"
+  assert $ test vSome "["
+  assert $ test vSome "[..]..]"
+  assert $ not $ test vSome "..a.."
   assert $ not $ test vSome ""
 
   log "many"
-  let vMany = startOfLine *> many (find ".") *> endOfLine
-  assert $ test vMany "."
-  assert $ test vMany "......"
+  let vMany = startOfLine *> many whitespace *> endOfLine
+  assert $ test vMany " "
+  assert $ test vMany "      "
+  assert $ test vMany "   \t \t"
   assert $ test vMany ""
 
   log "lineBreak"
   let vLineBreak = startOfLine *> find "abc" *> lineBreak *> find "def"
   assert $ test vLineBreak "abc\ndef"
   assert $ test vLineBreak "abc\r\ndef"
+  assert $ not $ test vLineBreak "abc\nghi"
 
   log "tab"
   assert $ test (find "a" *> tab *> find "b") "a\tb"
@@ -103,12 +108,12 @@ main = do
   assert $ test (word *> whitespace *> word) "Hello World"
 
   log "whitespace"
-  assert $ test (find "a" *> whitespace *> find "b") "a b"
+  assert $ test (find "a" *> some whitespace *> find "b") "a \n \t   b"
 
   log "withAnyCase"
-  assert $ not $ test (find "a") "A"
-  assert $ test (withAnyCase *> find "a") "A"
-  assert $ test (withAnyCase *> find "a") "a"
+  assert $ not $ test (find "foo") "Foo"
+  assert $ test (withAnyCase *> find "foo") "Foo"
+  assert $ test (withAnyCase *> find "foo") "FOO"
 
   log "capture"
   let vCapture = do
