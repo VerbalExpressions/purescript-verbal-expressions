@@ -38,13 +38,14 @@ Here, we use the result of the monadic action to return a replacement string wit
 ``` purs
 swap :: VerExReplace
 swap = do
-  first <- capture word
-  whitespace
+  first  <- capture word
+  blank  <- capture (some whitespace)
   second <- capture word
-  replaceWith (insert second <> " " <> insert first)
 
-> replaceM swap "Foo Bar"
-"Bar Foo"
+  replaceWith (insert second <> insert blank <> insert first)
+
+> replaceM swap "Foo   Bar"
+"Bar   Foo"
 ```
 
 ### Using Applicative notation
