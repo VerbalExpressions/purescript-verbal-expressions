@@ -41,7 +41,7 @@ This pattern matches "foo bar *foo*" but not "foo bar *baz*".
 ### Matching
 Here, we use the result of the monadic action to return an an array of capture groups. Note that optional capturing groups are possible:
 ``` purs
-number = match do
+number = do
   startOfLine
   intPart <- capture (some digit)
   floatPart <- possibly do
@@ -50,10 +50,10 @@ number = match do
   endOfLine
   return [intPart, floatPart]
 
-> match "3.14"
+> match number "3.14"
 Just [Just "3", Just "14"]
 
-> match "42"
+> match number "42"
 Just [Just "42", Nothing]
 
 > test number "."
@@ -61,7 +61,7 @@ false
 ```
 
 ### Replacing
-Here, we use the result of the monadic action to return a replacement string with 'named' capture groups:
+If, instead, we return a string from the monadic action, we can use it as a replacement string (with 'named' capture groups):
 ``` purs
 swapWords :: String -> String
 swapWords = replace do
