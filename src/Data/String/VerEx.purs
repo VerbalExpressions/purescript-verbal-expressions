@@ -249,15 +249,15 @@ toRegex' first verex = { result, regex, lastIndex }
     lastIndex = verexS.captureGroupIndex
 
 -- | Convert a Verbal Expression to a Regular Expression.
-toRegex :: VerEx -> R.Regex
-toRegex verex = _.regex (toRegex' 1 verex)
+toRegex :: forall a. VerExM a -> R.Regex
+toRegex verex = _.regex (toRegex' 1 (void verex))
 
 -- | Convert the pattern (without the flags) of a VerEx to a `String`.
 toString :: VerEx -> String
 toString verex = R.source (toRegex verex)
 
 -- | Check whether a given `String` matches the Verbal Expression.
-test :: VerEx -> String -> Boolean
+test :: forall a. VerExM a -> String -> Boolean
 test verex = R.test (toRegex verex)
 
 -- | Replace occurences of the `VerEx` with the `String` that is returned by

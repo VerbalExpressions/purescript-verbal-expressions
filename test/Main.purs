@@ -24,7 +24,7 @@ url = do
 
 main = do
   log "URL example"
-  let isUrl = test (void url)
+  let isUrl = test url
   assert $ isUrl "https://www.google.com"
   assert $ isUrl "http://google.com"
   assert $ isUrl "http://google.com"

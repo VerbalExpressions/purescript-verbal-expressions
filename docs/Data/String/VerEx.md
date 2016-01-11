@@ -242,7 +242,7 @@ Add the contents of a given capture group in the replacement string.
 #### `toRegex`
 
 ``` purescript
-toRegex :: VerEx -> Regex
+toRegex :: forall a. VerExM a -> Regex
 ```
 
 Convert a Verbal Expression to a Regular Expression.
@@ -250,7 +250,7 @@ Convert a Verbal Expression to a Regular Expression.
 #### `test`
 
 ``` purescript
-test :: VerEx -> String -> Boolean
+test :: forall a. VerExM a -> String -> Boolean
 ```
 
 Check whether a given `String` matches the Verbal Expression.
