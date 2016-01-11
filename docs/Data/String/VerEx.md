@@ -1,7 +1,8 @@
 ## Module Data.String.VerEx
 
-This module contains a PureScript implementation of
+This module contains a free monad implementation of
 [Verbal Expressions](https://github.com/VerbalExpressions/JSVerbalExpressions).
+for PureScript.
 
 #### `CaptureGroup`
 
@@ -31,7 +32,7 @@ The free monad over the `VerExF` type constructor.
 type VerEx = VerExM Unit
 ```
 
-A Verbal Expression.
+A monadic action that constructs a Verbal Expression.
 
 #### `startOfLine'`
 
@@ -181,6 +182,22 @@ findAgain :: CaptureGroup -> VerExM Unit
 
 Match a previous capture group again (back reference).
 
+#### `replaceWith`
+
+``` purescript
+replaceWith :: String -> VerExReplace
+```
+
+Replace the matched string with the given replacement.
+
+#### `insert`
+
+``` purescript
+insert :: CaptureGroup -> String
+```
+
+Add the contents of a given capture group in the replacement string.
+
 #### `toRegex`
 
 ``` purescript
@@ -206,5 +223,14 @@ replace :: VerEx -> String -> String -> String
 Replace occurences of the `VerEx` with the first string. The replacement
 string can include special replacement patterns escaped with `"$"`
 See [reference](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace).
+
+#### `replaceM`
+
+``` purescript
+replaceM :: VerExReplace -> String -> String
+```
+
+Replace occurences of the `VerEx` with the `String` that is returned by
+the monadic action.
 
 

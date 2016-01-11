@@ -16,10 +16,11 @@
   "dependencies": {
     "purescript-strings": "^0.7.1",
     "purescript-free": "^0.9.1",
-    "purescript-transformers": "^0.8.4"
+    "purescript-transformers": "^0.8.4",
+    "purescript-tuples": "^0.4.0"
   },
   "devDependencies": {
     "purescript-console": "^0.1.0",
-    "purescript-assert": "~0.1.1"
+    "purescript-assert": "^0.1.1"
   }
 }

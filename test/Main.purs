@@ -100,9 +100,10 @@ main = do
   assert $ (== "Start (...) Middle (...) End") $
     replace inBrackets "(...)" "Start (everything in here) Middle (another) End"
 
-  let vSwitchWords = do
-        withAnyCase
-        startOfLine
-        capture word *> whitespace *> capture word
-        endOfLine
-  assert $ replace vSwitchWords "$2 $1" "Foo Bar" == "Bar Foo"
+  log "replaceM"
+  let verexReplace = do
+        first <- capture word
+        whitespace
+        second <- capture word
+        replaceWith (insert second <> " " <> insert first)
+  assert $ replaceM verexReplace "Foo Bar" == "Bar Foo"

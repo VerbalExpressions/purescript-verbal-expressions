@@ -1,5 +1,6 @@
--- | This module contains a PureScript implementation of
+-- | This module contains a free monad implementation of
 -- | [Verbal Expressions](https://github.com/VerbalExpressions/JSVerbalExpressions).
+-- | for PureScript.
 module Data.String.VerEx
   ( VerExF()
   , VerExM()
@@ -25,20 +26,25 @@ module Data.String.VerEx
   -- Capture groups
   , capture
   , findAgain
+  -- Replacements
+  , replaceWith
+  , insert
   -- Conversion to Regex
   , toRegex
   -- Pattern matching
   , test
   , replace
+  , replaceM
   ) where
 
 import Prelude hiding (add)
 
 import Control.Apply ((*>))
 import Control.Monad.Free (Free(), liftF, foldFree)
-import Control.Monad.State (State(), modify, get, put, execState)
+import Control.Monad.State (State(), modify, get, put, runState)
 
 import Data.String.Regex as R
+import Data.Tuple (fst, snd)
 
 newtype CaptureGroup = CaptureGroup Int
 
@@ -53,8 +59,12 @@ data VerExF a
 -- | The free monad over the `VerExF` type constructor.
 type VerExM = Free VerExF
 
--- | A Verbal Expression.
+-- | A monadic action that constructs a Verbal Expression.
 type VerEx = VerExM Unit
+
+-- | A monadic action that constructs a Verbal Expression and returns a
+-- | replacement string.
+type VerExReplace = VerExM String
 
 -- | Set whether or not the expression has to start at the beginning of the
 -- | line. Default: `false`.
@@ -145,6 +155,14 @@ capture inner = liftF $ Capture inner id
 findAgain :: CaptureGroup -> VerExM Unit
 findAgain (CaptureGroup ind) = add $ "(?:\\" <> show ind <> ")"
 
+-- | Replace the matched string with the given replacement.
+replaceWith :: String -> VerExReplace
+replaceWith = return
+
+-- | Add the contents of a given capture group in the replacement string.
+insert :: CaptureGroup -> String
+insert (CaptureGroup ind) = "$" <> show ind
+
 type VerExState =
   { startOfLine :: Boolean
   , endOfLine :: Boolean
@@ -176,17 +194,25 @@ toVerExState (Capture inner f) = f <$> do
         , captureGroupIndex = s.captureGroupIndex + 1 }
   return (CaptureGroup s.captureGroupIndex)
 
+-- | Convert a Verbal Expression to a Regular Expression and return the result
+-- | of the monadic action.
+toRegex' :: forall a. VerExM a -> { result :: a, regex :: R.Regex }
+toRegex' verex = { result, regex }
+  where
+    both = runState (foldFree toVerExState verex) empty
+    result = fst both
+    verexS = snd both
+
+    flags = R.parseFlags verexS.flags
+
+    prefix = if verexS.startOfLine then "^" else ""
+    suffix = if verexS.endOfLine then "$" else ""
+
+    regex = R.regex (prefix <> verexS.pattern <> suffix) flags
+
 -- | Convert a Verbal Expression to a Regular Expression.
 toRegex :: VerEx -> R.Regex
-toRegex verex = R.regex (prefix <> vs.pattern <> suffix) flags
-  where
-    vs :: VerExState
-    vs = execState (foldFree toVerExState verex) empty
-
-    flags = R.parseFlags vs.flags
-
-    prefix = if vs.startOfLine then "^" else ""
-    suffix = if vs.endOfLine then "$" else ""
+toRegex verex = _.regex (toRegex' verex)
 
 -- | Convert the pattern (without the flags) of a VerEx to a `String`.
 toString :: VerEx -> String
@@ -202,3 +228,9 @@ test verex = R.test (toRegex verex)
 replace :: VerEx -> String -> String -> String
 replace verex = R.replace (toRegex verex')
   where verex' = verex *> addFlags "g"
+
+-- | Replace occurences of the `VerEx` with the `String` that is returned by
+-- | the monadic action.
+replaceM :: VerExReplace -> String -> String
+replaceM verex = R.replace pattern.regex pattern.result
+  where pattern = toRegex' verex
