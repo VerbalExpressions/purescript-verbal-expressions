@@ -2,9 +2,10 @@ module Test.Main where
 
 import Prelude
 import Control.Apply ((*>))
-import Control.Monad.Eff.Console (log)
 import Data.Maybe (Maybe(..))
-import Test.Assert (assert)
+
+import Test.Unit as Unit
+import Test.Unit.Assert (assert, assertFalse, equal)
 
 import Data.String.VerEx
 
@@ -32,176 +33,201 @@ number = do
     some digit
   endOfLine
 
-main = do
-  log "URL example"
-  let isUrl = test url
-  assert $ isUrl "https://www.google.com"
-  assert $ isUrl "http://google.com"
-  assert $ isUrl "http://google.com"
-  assert $ not $ isUrl "http://google com"
-  assert $ not $ isUrl "ftp://google com"
+main = Unit.runTest do
+  Unit.test "URL VerEx" do
+    let isUrl = test url
+    assert "should match valid URL" $ isUrl "https://www.google.com"
+    assert "should match valid URL" $ isUrl "http://google.com"
+    assert "should match valid URL" $ isUrl "http://google.com"
+    assertFalse "should not match invalid URL" $ isUrl "http://google com"
+    assertFalse "should not match invalid URL" $ isUrl "ftp://google com"
 
-  log "startOfLine"
-  let vStartOfLine = startOfLine *> find "a"
-  assert $ test vStartOfLine "a"
-  assert $ not $ test vStartOfLine "ba"
+  Unit.test "startOfLine" do
+    let vStartOfLine = startOfLine *> find "a"
+    assert "should match 'a' at start of the line" $
+      test vStartOfLine "a"
+    assertFalse "should not match if no 'a' is at the start of the line" $
+      test vStartOfLine "ba"
 
-  log "endOfLine"
-  let vEndOfLine = find "a" *> endOfLine
-  assert $ test vEndOfLine "a"
-  assert $ not $ test vEndOfLine "ab"
+  Unit.test "endOfLine" do
+    let vEndOfLine = find "a" *> endOfLine
+    assert "should match 'a' at the end of the line" $
+      test vEndOfLine "a"
+    assertFalse "should not match if no 'a' is at the end of the line" $
+      test vEndOfLine "ab"
 
-  log "find"
-  assert $ test (find "a" *> find "b") "ab"
+  Unit.test "find" do
+    assert "should match a and then b" $
+      test (find "a" *> find "b") "ab"
+    assert "should properly find special characters" $
+      test (find "^)(.$[") "^)(.$["
 
-  log "Special characters"
-  assert $ test (find "^)(.$[") "^)(.$["
+  Unit.test "possibly" do
+    let vPossibly = do
+          find "a"
+          possibly do
+            find "("
+            some (find "bc")
+            find ")"
+          find "d"
+    assert "should match" $ test vPossibly "ad"
+    assert "should match" $ test vPossibly "a(bc)d"
+    assert "should match" $ test vPossibly "a(bcbcbcbc)d"
+    assertFalse "should not match" $ test vPossibly "a()d"
+    assertFalse "should not match" $ test vPossibly "abcd"
 
-  log "possibly"
-  let vPossibly = do
-        find "a"
-        possibly do
-          find "("
-          some (find "bc")
-          find ")"
-        find "d"
-  assert $ test vPossibly "ad"
-  assert $ test vPossibly "a(bc)d"
-  assert $ test vPossibly "a(bcbcbcbc)d"
-  assert $ not $ test vPossibly "a()d"
-  assert $ not $ test vPossibly "abcd"
+  Unit.test "anything" do
+    assert "should match any character" $ test anything "$(#!"
+    assert "should match empty string" $ test anything ""
 
-  log "anything"
-  assert $ test anything "$(#!"
-  assert $ test anything ""
+  Unit.test "anythingBut" do
+    let vAnythingBut = startOfLine *> anythingBut "a" *> endOfLine
+    assert "should match anything but an 'a'" $ test vAnythingBut "b"
+    assert "should match the empty string" $ test vAnythingBut ""
+    assertFalse "should not match an 'a'" $ test vAnythingBut "a"
 
-  log "anythingBut"
-  let vAnythingBut = startOfLine *> anythingBut "a" *> endOfLine
-  assert $ test vAnythingBut "b"
-  assert $ test vAnythingBut ""
-  assert $ not $ test vAnythingBut "a"
+  Unit.test "something" do
+    assert "should match any character" $ test something "$(#!"
+    assertFalse "should not match the empty string" $ test something ""
 
-  log "something"
-  assert $ test something "$(#!"
-  assert $ not $ test something ""
+  Unit.test "anyOf" do
+    let vAnyOf = startOfLine *> find "a" *> anyOf "xyz"
+    assert "should match an x" $ test vAnyOf "ax"
+    assert "should match a y" $ test vAnyOf "az"
+    assertFalse "should not match a b" $ test vAnyOf "ab"
 
-  log "anyOf"
-  let vAnyOf = startOfLine *> find "a" *> anyOf "xyz"
-  assert $ test vAnyOf "ax"
-  assert $ test vAnyOf "az"
-  assert $ not $ test vAnyOf "ab"
+  Unit.test "some" do
+    let vSome = startOfLine *> some (anyOf ".[]") *> endOfLine
+    assert "should match a single occurence" $ test vSome "."
+    assert "should handle special characters" $ test vSome "["
+    assert "should match more than one occurence" $ test vSome "[..]..]"
+    assertFalse "should not match the 'a'" $ test vSome "..a.."
+    assertFalse "should not match the empty string" $ test vSome ""
 
-  log "some"
-  let vSome = startOfLine *> some (anyOf ".[]") *> endOfLine
-  assert $ test vSome "."
-  assert $ test vSome "["
-  assert $ test vSome "[..]..]"
-  assert $ not $ test vSome "..a.."
-  assert $ not $ test vSome ""
+  Unit.test "many" do
+    let vMany = startOfLine *> many whitespace *> endOfLine
+    assert "should match a single occurence" $ test vMany " "
+    assert "should match the empty string" $ test vMany ""
+    assert "should match many occurences" $ test vMany "      "
+    assert "should handle the sub-expression correctly" $ test vMany "   \t \t"
 
-  log "many"
-  let vMany = startOfLine *> many whitespace *> endOfLine
-  assert $ test vMany " "
-  assert $ test vMany "      "
-  assert $ test vMany "   \t \t"
-  assert $ test vMany ""
+  Unit.test "lineBreak" do
+    let vLineBreak = startOfLine *> find "abc" *> lineBreak *> find "def"
+    assert "should match unix newlines" $ test vLineBreak "abc\ndef"
+    assert "should match windows newlines" $ test vLineBreak "abc\r\ndef"
+    assertFalse "should not match other things after the newline" $
+      test vLineBreak "abc\nghi"
 
-  log "lineBreak"
-  let vLineBreak = startOfLine *> find "abc" *> lineBreak *> find "def"
-  assert $ test vLineBreak "abc\ndef"
-  assert $ test vLineBreak "abc\r\ndef"
-  assert $ not $ test vLineBreak "abc\nghi"
+  Unit.test "tab" do
+    assert "should match a tab character" $
+      test (find "a" *> tab *> find "b") "a\tb"
 
-  log "tab"
-  assert $ test (find "a" *> tab *> find "b") "a\tb"
+  Unit.test "word" do
+    assert "should match a whole word" $
+      test (word *> whitespace *> word) "Hello World"
 
-  log "word"
-  assert $ test (word *> whitespace *> word) "Hello World"
+  Unit.test "digit" do
+    assert "should match any digit" $
+      test (find "(" *> some digit *> find ")") "(0123456789)"
 
-  log "digit"
-  assert $ test (find "(" *> some digit *> find ")") "(0123456789)"
-  let isNumber = test number
-  assert $ isNumber "1"
-  assert $ isNumber "42"
-  assert $ isNumber "+42"
-  assert $ isNumber "-42"
-  assert $ isNumber "42.123"
-  assert $ isNumber "-42.123"
-  assert $ not (isNumber "a")
-  assert $ not (isNumber ".123")
-  assert $ not (isNumber "0.")
+  Unit.test "number VerEx" do
+    let isNumber = test number
+    assert "should match a single digit" $ isNumber "1"
+    assert "should match an integer" $ isNumber "4242"
+    assert "should match a signed integer" $ isNumber "+42"
+    assert "should match a signed integer" $ isNumber "-42"
+    assert "should match a float" $ isNumber "42.123"
+    assert "should match a negative float" $ isNumber "-42.123"
+    assertFalse "should not match a charater" $ isNumber "a"
+    assertFalse "should not match just the float part" $ isNumber ".123"
+    assertFalse "should not match a trailing '.'" $ isNumber "0."
 
-  log "whitespace"
-  assert $ test (find "a" *> some whitespace *> find "b") "a \n \t   b"
+  Unit.test "whitespace" do
+    assert "should match all whitespace characters" $
+      test (find "a" *> some whitespace *> find "b") "a \n \t   b"
 
-  log "withAnyCase"
-  assert $ not $ test (find "foo") "Foo"
-  assert $ test (withAnyCase *> find "foo") "Foo"
-  assert $ test (withAnyCase *> find "foo") "FOO"
+  Unit.test "withAnyCase" do
+    assertFalse "should be case-sensitive by default" $
+      test (find "foo") "Foo"
+    assert "should enable case-insensitivity" $
+      test (withAnyCase *> find "foo") "Foo"
 
-  log "capture"
-  let vCapture = do
-        firstWord <- capture word
-        whitespace
-        capture word
-        whitespace
-        findAgain firstWord
-  assert $ test vCapture "foo bar foo"
-  assert $ not $ test vCapture "foo bar baz"
+  Unit.test "capture" do
+    let vCapture = do
+          firstWord <- capture word
+          whitespace
+          capture word
+          whitespace
+          findAgain firstWord
+    assert "should match 'foo bar foo'" $
+      test vCapture "foo bar foo"
+    assertFalse "should not match 'foo bar baz'" $
+      test vCapture "foo bar baz"
 
-  log "replace"
-  let verexReplace = do
-        first  <- capture word
-        blank  <- capture (some whitespace)
-        second <- capture word
-        replaceWith (insert second <> insert blank <> insert first)
-  assert $ replace verexReplace "Foo   Bar" == "Bar   Foo"
+  Unit.test "replace" do
+    let verexReplace = do
+          first  <- capture word
+          blank  <- capture (some whitespace)
+          second <- capture word
+          replaceWith (insert second <> insert blank <> insert first)
+    equal (replace verexReplace "Foo   Bar")
+          "Bar   Foo"
 
-  let censor = replace $ find "[" *> anythingBut "]" *> find "]" *> replaceWith "---"
-  assert $ censor "Censor [all!!] things [inside(42)] brackets"
-             == "Censor --- things --- brackets"
+    let censor = replace $ find "[" *> anythingBut "]" *> find "]" *> replaceWith "---"
+    equal
+      (censor "Censor [all!!] things [inside(42)] brackets")
+      "Censor --- things --- brackets"
 
-  log "match"
-  assert $ match url "https://google.com" == Just [Just "https", Just "google.com"]
-  assert $ match url "ftp://google.com" == Nothing
+  Unit.test "match" do
+    equal (match url "https://google.com")
+          (Just [Just "https", Just "google.com"])
+    equal (match url "ftp://google.com")
+          Nothing
 
-  let date = do
-        startOfLine
-        year <- capture do
-          possibly (exactly 2 digit)
-          exactly 2 digit
-        find "-"
-        month <- capture (exactly 2 digit)
-        find "-"
-        day <- capture (exactly 2 digit)
-        endOfLine
-        return [year, month, day]
+    let date = do
+          startOfLine
+          year <- capture do
+            possibly (exactly 2 digit)
+            exactly 2 digit
+          find "-"
+          month <- capture (exactly 2 digit)
+          find "-"
+          day <- capture (exactly 2 digit)
+          endOfLine
+          return [year, month, day]
 
-  assert $ match date "2016-01-11" == Just [Just "2016", Just "01", Just "11"]
-  assert $ match date "16-01-11" == Just [Just "16", Just "01", Just "11"]
-  assert $ match date "016-01-11" == Nothing
+    equal (match date "2016-01-11")
+          (Just [Just "2016", Just "01", Just "11"])
+    equal (match date "16-01-11")
+          (Just [Just "16", Just "01", Just "11"])
+    equal (match date "016-01-11")
+          Nothing
 
-  let matchNumber = match do
-        startOfLine
-        intPart <- capture (some digit)
-        floatPart <- possibly do
-          find "."
-          capture (some digit)
-        endOfLine
+    let matchNumber = match do
+          startOfLine
+          intPart <- capture (some digit)
+          floatPart <- possibly do
+            find "."
+            capture (some digit)
+          endOfLine
 
-        return [intPart, floatPart]
+          return [intPart, floatPart]
 
-  assert $ matchNumber "3.14" == Just [Just "3", Just "14"]
-  assert $ matchNumber "42" == Just [Just "42", Nothing]
-  assert $ not $ test number "."
+    equal (matchNumber "3.14")
+          (Just [Just "3", Just "14"])
+    equal (matchNumber "42")
+          (Just [Just "42", Nothing])
+    equal (matchNumber ".3")
+          Nothing
 
-  let matchNested = match do
-        a <- capture digit
-        find ","
-        inner <- capture do
-          void $ capture digit
-        find ","
-        b <- capture digit
-        return [a, inner, b]
+    let matchNested = match do
+          a <- capture digit
+          find ","
+          inner <- capture do
+            void $ capture digit
+          find ","
+          b <- capture digit
+          return [a, inner, b]
 
-  assert $ matchNested "1,2,3" == Just [Just "1", Just "2", Just "3"]
+    equal (matchNested "1,2,3")
+          (Just [Just "1", Just "2", Just "3"])

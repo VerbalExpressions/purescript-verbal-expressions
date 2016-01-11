@@ -20,7 +20,6 @@
     "purescript-tuples": "^0.4.0"
   },
   "devDependencies": {
-    "purescript-console": "^0.1.0",
-    "purescript-assert": "^0.1.1"
+    "purescript-test-unit": "^4.1.0"
   }
 }
