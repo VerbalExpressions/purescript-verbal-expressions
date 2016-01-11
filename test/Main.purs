@@ -127,8 +127,8 @@ main = do
 
   log "replaceM"
   let verexReplace = do
-        first <- capture word
-        sep <- capture (some whitespace)
+        first  <- capture word
+        blank  <- capture (some whitespace)
         second <- capture word
-        replaceWith (insert second <> insert sep <> insert first)
+        replaceWith (insert second <> insert blank <> insert first)
   assert $ replaceM verexReplace "Foo   Bar" == "Bar   Foo"

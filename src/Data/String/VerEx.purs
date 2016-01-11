@@ -45,6 +45,7 @@ import Control.Apply ((*>))
 import Control.Monad.Free (Free(), liftF, foldFree)
 import Control.Monad.State (State(), modify, get, put, runState)
 
+import Data.Functor ((<$))
 import Data.String.Regex as R
 import Data.Tuple (fst, snd)
 
@@ -195,15 +196,15 @@ empty =
 
 -- | Natural transformation from `VerExF` to `State VerExState`.
 toVerExState :: forall a. VerExF a -> State VerExState a
-toVerExState (Add str a) = const a <$>
+toVerExState (Add str a) = a <$
   modify (\s -> s { pattern = s.pattern <> str })
-toVerExState (StartOfLine flag a) = const a <$>
+toVerExState (StartOfLine flag a) = a <$
   modify (\s -> s { startOfLine = flag })
-toVerExState (EndOfLine flag a) = const a <$>
+toVerExState (EndOfLine flag a) = a <$
   modify (\s -> s { endOfLine = flag })
-toVerExState (AddFlags flags a) = const a <$>
+toVerExState (AddFlags flags a) = a <$
   modify (\s -> s { flags = s.flags <> flags })
-toVerExState (AddSubexpression inner a) = const a <$>
+toVerExState (AddSubexpression inner a) = a <$
   modify (\s -> s { pattern = s.pattern <> "(?:" <> toString inner <> ")" })
 toVerExState (Capture inner f) = f <$> do
   s <- get
