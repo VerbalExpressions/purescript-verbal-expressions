@@ -165,6 +165,14 @@ word :: VerExM Unit
 
 Adds an expression to match a word.
 
+#### `digit`
+
+``` purescript
+digit :: VerExM Unit
+```
+
+Adds an expression to match a single digit.
+
 #### `whitespace`
 
 ``` purescript

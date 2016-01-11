@@ -107,6 +107,22 @@ main = do
   log "word"
   assert $ test (word *> whitespace *> word) "Hello World"
 
+  log "digit"
+  assert $ test (find "(" *> some digit *> find ")") "(0123456789)"
+  let isNumber = test do
+        startOfLine
+        some digit
+        possiblyV do
+          find "."
+          some digit
+        endOfLine
+  assert $ isNumber "1"
+  assert $ isNumber "42"
+  assert $ isNumber "42.123"
+  assert $ not (isNumber "a")
+  assert $ not (isNumber ".123")
+  assert $ not (isNumber "0.")
+
   log "whitespace"
   assert $ test (find "a" *> some whitespace *> find "b") "a \n \t   b"
 

@@ -23,6 +23,7 @@ module Data.String.VerEx
   , lineBreak
   , tab
   , word
+  , digit
   , whitespace
   , withAnyCase
   -- Capture groups
@@ -153,6 +154,10 @@ tab = add "(?:\\t)"
 -- | Adds an expression to match a word.
 word :: VerExM Unit
 word = add "(?:\\w+)"
+
+-- | Adds an expression to match a single digit.
+digit :: VerExM Unit
+digit = add "\\d"
 
 -- | Any whitespace character
 whitespace :: VerExM Unit
