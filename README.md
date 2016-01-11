@@ -4,7 +4,8 @@ A free monad implementation of [Verbal Expressions](https://github.com/VerbalExp
 
 ## Examples
 
-### Using do-notation to construct verbal expressions
+### Basic testing
+We can use do-notation to construct verbal expressions:
 ``` purs
 number :: VerEx
 number = do
@@ -25,8 +26,6 @@ true
 > test number "3."
 false
 ```
-
-### Capture groups and back references
 The monadic interface allows us to bind the indices of capture groups to named expressions:
 ``` purs
 pattern :: VerEx
@@ -37,9 +36,10 @@ pattern = do
   whitespace
   findAgain firstWord
 ```
-This VerEx matches "foo bar *foo*" but not "foo bar *baz*".
+This pattern matches "foo bar *foo*" but not "foo bar *baz*".
 
 ### Matching
+Here, we use the result of the monadic action to return an an array of capture groups. Note that optional capturing groups are possible:
 ``` purs
 number = match do
   startOfLine
@@ -60,7 +60,7 @@ Just [Just "42", Nothing]
 false
 ```
 
-### Replacing with named groups
+### Replacing
 Here, we use the result of the monadic action to return a replacement string with 'named' capture groups:
 ``` purs
 swapWords :: String -> String
