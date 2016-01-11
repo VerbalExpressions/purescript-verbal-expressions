@@ -111,6 +111,7 @@ main = do
   assert $ test (find "(" *> some digit *> find ")") "(0123456789)"
   let isNumber = test do
         startOfLine
+        possiblyV (anyOf "+-")
         some digit
         possiblyV do
           find "."
@@ -118,7 +119,10 @@ main = do
         endOfLine
   assert $ isNumber "1"
   assert $ isNumber "42"
+  assert $ isNumber "+42"
+  assert $ isNumber "-42"
   assert $ isNumber "42.123"
+  assert $ isNumber "-42.123"
   assert $ not (isNumber "a")
   assert $ not (isNumber ".123")
   assert $ not (isNumber "0.")
