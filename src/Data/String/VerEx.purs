@@ -15,7 +15,6 @@ module Data.String.VerEx
   , endOfLine
   , find
   , possibly
-  , possiblyV
   , anything
   , anythingBut
   , something
@@ -119,14 +118,9 @@ add str = liftF $ Add str unit
 find :: String -> VerExM Unit
 find str = add $ "(?:" <> escape str <> ")"
 
--- | Add a string to the expression that might appear once (or not).
--- | This combinator is called `maybe` in the original API.
-possibly :: String -> VerExM Unit
-possibly str = add $ "(?:" <> escape str <> ")?"
-
--- | Like `possibly`, but works on a sub-VerEx.
-possiblyV :: forall a. VerExM a -> VerExM a
-possiblyV sub = addSubexpression sub <* add "?"
+-- | Add a sub-expression which might appear zero or one times.
+possibly :: forall a. VerExM a -> VerExM a
+possibly sub = addSubexpression sub <* add "?"
 
 -- | Match any charcter, any number of times.
 anything :: VerExM Unit

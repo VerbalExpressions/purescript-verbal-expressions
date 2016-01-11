@@ -13,10 +13,10 @@ url = do
   startOfLine
   protocol <- capture do
     find "http"
-    possibly "s"
+    possibly $ find "s"
   find "://"
   domain <- capture do
-    possibly "www."
+    possibly $ find "www."
     anythingBut " "
   endOfLine
 
@@ -48,23 +48,18 @@ main = do
   assert $ test (find "^)(.$[") "^)(.$["
 
   log "possibly"
-  let vPossibly = startOfLine *> find "a" *> possibly "..." *> find "b"
-  assert $ test vPossibly "ab"
-  assert $ test vPossibly "a...b"
-
-  log "possiblyV"
-  let vPossiblyV = do
+  let vPossibly = do
         find "a"
-        possiblyV do
+        possibly do
           find "("
           some (find "bc")
           find ")"
         find "d"
-  assert $ test vPossiblyV "ad"
-  assert $ test vPossiblyV "a(bc)d"
-  assert $ test vPossiblyV "a(bcbcbcbc)d"
-  assert $ not $ test vPossiblyV "a()d"
-  assert $ not $ test vPossiblyV "abcd"
+  assert $ test vPossibly "ad"
+  assert $ test vPossibly "a(bc)d"
+  assert $ test vPossibly "a(bcbcbcbc)d"
+  assert $ not $ test vPossibly "a()d"
+  assert $ not $ test vPossibly "abcd"
 
   log "anything"
   assert $ test anything "$(#!"
@@ -117,9 +112,9 @@ main = do
   assert $ test (find "(" *> some digit *> find ")") "(0123456789)"
   let isNumber = test do
         startOfLine
-        possiblyV (anyOf "+-")
+        possibly (anyOf "+-")
         some digit
-        possiblyV do
+        possibly do
           find "."
           some digit
         endOfLine
@@ -169,7 +164,9 @@ main = do
 
   let date = do
         startOfLine
-        year <- capture (exactly 4 digit)
+        year <- capture do
+          possibly (exactly 2 digit)
+          exactly 2 digit
         find "-"
         month <- capture (exactly 2 digit)
         find "-"
@@ -178,12 +175,13 @@ main = do
         return [year, month, day]
 
   assert $ match date "2016-01-11" == Just [Just "2016", Just "01", Just "11"]
-  assert $ match date "2016-1-11" == Nothing
+  assert $ match date "16-01-11" == Just [Just "16", Just "01", Just "11"]
+  assert $ match date "016-01-11" == Nothing
 
   let matchNumber = match do
         startOfLine
         intPart <- capture (some digit)
-        floatPart <- possiblyV do
+        floatPart <- possibly do
           find "."
           capture (some digit)
         endOfLine
@@ -192,6 +190,7 @@ main = do
 
   assert $ matchNumber "3.14" == Just [Just "3", Just "14"]
   assert $ matchNumber "42" == Just [Just "42", Nothing]
+  assert $ matchNumber "." == Nothing
 
   let matchNested = match do
         a <- capture digit

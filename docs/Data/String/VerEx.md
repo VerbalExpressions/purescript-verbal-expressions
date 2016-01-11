@@ -97,19 +97,10 @@ Add a string to the expression.
 #### `possibly`
 
 ``` purescript
-possibly :: String -> VerExM Unit
+possibly :: forall a. VerExM a -> VerExM a
 ```
 
-Add a string to the expression that might appear once (or not).
-This combinator is called `maybe` in the original API.
-
-#### `possiblyV`
-
-``` purescript
-possiblyV :: forall a. VerExM a -> VerExM a
-```
-
-Like `possibly`, but works on a sub-VerEx.
+Add a sub-expression which might appear zero or one times.
 
 #### `anything`
 
