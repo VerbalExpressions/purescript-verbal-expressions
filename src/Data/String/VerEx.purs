@@ -18,7 +18,6 @@ module Data.String.VerEx
   , something
   , anyOf
   , lineBreak
-  , br
   , tab
   , word
   , whitespace
@@ -125,10 +124,6 @@ anyOf str = add $ "(?:[" <> escape str <> "])"
 -- | Add universal line break expression.
 lineBreak :: VerExM Unit
 lineBreak = add "(?:(?:\\n)|(?:\\r\\n))"
-
--- | Shorthand for `lineBreak`.
-br :: VerExM Unit
-br = lineBreak
 
 -- | Add expression to match a tab character.
 tab :: VerExM Unit

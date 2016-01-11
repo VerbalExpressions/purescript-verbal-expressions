@@ -66,8 +66,8 @@ main = do
   assert $ test vAnyOf "az"
   assert $ not $ test vAnyOf "ab"
 
-  log "lineBreak, br"
-  let vLineBreak = startOfLine *> find "abc" *> br *> find "def"
+  log "lineBreak"
+  let vLineBreak = startOfLine *> find "abc" *> lineBreak *> find "def"
   assert $ test vLineBreak "abc\ndef"
   assert $ test vLineBreak "abc\r\ndef"
 
