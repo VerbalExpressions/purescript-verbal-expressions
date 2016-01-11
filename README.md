@@ -36,22 +36,22 @@ This VerEx matches "foo bar *foo*" but not "foo bar *baz*".
 ### Replacing with named groups
 Here, we use the result of the monadic action to return a replacement string with 'named' capture groups:
 ``` purs
-swap :: VerExReplace
-swap = do
+swapWords :: String -> String
+swapWords = replace do
   first  <- capture word
   blank  <- capture (some whitespace)
   second <- capture word
 
   replaceWith (insert second <> insert blank <> insert first)
 
-> replace swap "Foo   Bar"
+> swapWords "Foo   Bar"
 "Bar   Foo"
 ```
 Note that `replaceWith` is just an alias for `return`.
 
-### Matching
+### Matching with named groups
 ``` purs
-matchNumber = match do
+number = match do
   startOfLine
   intPart <- capture (some digit)
   floatPart <- possiblyV do
@@ -60,14 +60,14 @@ matchNumber = match do
   endOfLine
   return [intPart, floatPart]
 
-> matchNumber "3.14"
+> match "3.14"
 Just [Just "3", Just "14"]
 
-> matchNumber "42"
+> match "42"
 Just [Just "42", Nothing]
 
-> matchNumber "."
-Nothing
+> test number "."
+false
 ```
 
 For more examples, see the [tests](test/Main.purs).
