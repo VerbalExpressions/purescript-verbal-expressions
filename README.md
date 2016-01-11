@@ -2,6 +2,9 @@
 
 A free monad implementation of [Verbal Expressions](https://github.com/VerbalExpressions/JSVerbalExpressions) for [PureScript](https://github.com/purescript/purescript).
 
+* [Module documentation](http://pursuit.purescript.org/packages/purescript-verbal-expressions/)
+* [Test suite](https://github.com/VerbalExpressions/purescript-verbal-expressions/blob/master/test/Main.purs)
+
 ## Examples
 
 ### Basic testing
