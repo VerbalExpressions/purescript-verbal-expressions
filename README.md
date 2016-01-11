@@ -47,6 +47,7 @@ swap = do
 > replaceM swap "Foo   Bar"
 "Bar   Foo"
 ```
+Note that `replaceWith` is just an alias for `return`.
 
 ### Using Applicative notation
 Note that special characters like `[` and `]` are properly escaped for us:
