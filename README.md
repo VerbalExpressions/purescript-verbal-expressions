@@ -32,7 +32,7 @@ pattern :: VerEx
 pattern = do
   firstWord <- capture word
   whitespace
-  capture word
+  word
   whitespace
   findAgain firstWord
 ```
