@@ -270,7 +270,7 @@ test verex = R.test (toRegex verex)
 -- | the monadic action.
 replace :: VerExReplace -> String -> String
 replace verex = R.replace pattern.regex pattern.result
-  where pattern = toRegex' 1 verex
+  where pattern = toRegex' 1 (verex <* addFlags "g")
 
 -- | Match the `VerEx` against the string argument and (maybe) return an Array
 -- | of possible results from the specified capture groups.

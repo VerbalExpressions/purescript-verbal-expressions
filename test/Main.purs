@@ -159,6 +159,10 @@ main = do
         replaceWith (insert second <> insert blank <> insert first)
   assert $ replace verexReplace "Foo   Bar" == "Bar   Foo"
 
+  let censor = replace $ find "[" *> anythingBut "]" *> find "]" *> replaceWith "---"
+  assert $ censor "Censor [all!!] things [inside(42)] brackets"
+             == "Censor --- things --- brackets"
+
   log "match"
   assert $ match url "https://google.com" == Just [Just "https", Just "google.com"]
   assert $ match url "ftp://google.com" == Nothing
