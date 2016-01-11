@@ -3,27 +3,33 @@ module Test.Main where
 import Prelude
 import Control.Apply ((*>))
 import Control.Monad.Eff.Console (log)
+import Data.Maybe (Maybe(..))
 import Test.Assert (assert)
 
 import Data.String.VerEx
 
-url :: VerEx
+url :: VerExMatch
 url = do
   startOfLine
-  find "http"
-  possibly "s"
+  protocol <- capture do
+    find "http"
+    possibly "s"
   find "://"
-  possibly "www."
-  anythingBut " "
+  domain <- capture do
+    possibly "www."
+    anythingBut " "
   endOfLine
+
+  return [protocol, domain]
 
 main = do
   log "URL example"
-  assert $ test url "https://www.google.com"
-  assert $ test url "http://google.com"
-  assert $ test url "http://google.com"
-  assert $ not $ test url "http://google com"
-  assert $ not $ test url "ftp://google com"
+  let isUrl = test (void url)
+  assert $ isUrl "https://www.google.com"
+  assert $ isUrl "http://google.com"
+  assert $ isUrl "http://google.com"
+  assert $ not $ isUrl "http://google com"
+  assert $ not $ isUrl "ftp://google com"
 
   log "startOfLine"
   let vStartOfLine = startOfLine *> find "a"
@@ -146,14 +152,50 @@ main = do
   assert $ not $ test vCapture "foo bar baz"
 
   log "replace"
-  let inBrackets = find "(" *> anythingBut ")" *> find ")"
-  assert $ (== "Start (...) Middle (...) End") $
-    replace inBrackets "(...)" "Start (everything in here) Middle (another) End"
-
-  log "replaceM"
   let verexReplace = do
         first  <- capture word
         blank  <- capture (some whitespace)
         second <- capture word
         replaceWith (insert second <> insert blank <> insert first)
-  assert $ replaceM verexReplace "Foo   Bar" == "Bar   Foo"
+  assert $ replace verexReplace "Foo   Bar" == "Bar   Foo"
+
+  log "match"
+  assert $ match url "https://google.com" == Just [Just "https", Just "google.com"]
+  assert $ match url "ftp://google.com" == Nothing
+
+  let date = do
+        startOfLine
+        year <- capture (exactly 4 digit)
+        find "-"
+        month <- capture (exactly 2 digit)
+        find "-"
+        day <- capture (exactly 2 digit)
+        endOfLine
+        return [year, month, day]
+
+  assert $ match date "2016-01-11" == Just [Just "2016", Just "01", Just "11"]
+  assert $ match date "2016-1-11" == Nothing
+
+  let matchNumber = match do
+        startOfLine
+        intPart <- capture (some digit)
+        floatPart <- possiblyV do
+          find "."
+          capture (some digit)
+        endOfLine
+
+        return [intPart, floatPart]
+
+  assert $ matchNumber "3.14" == Just [Just "3", Just "14"]
+  assert $ matchNumber "42" == Just [Just "42", Nothing]
+
+  let matchNested = match do
+        a <- capture digit
+        find ","
+        inner <- capture do
+          void $ capture digit
+        find ","
+        b <- capture digit
+        return [a, inner, b]
+
+  assert $ matchNested "1,2,3" == Just [Just "1", Just "2", Just "3"]

@@ -5,6 +5,8 @@ module Data.String.VerEx
   ( VerExF()
   , VerExM()
   , VerEx()
+  , VerExReplace()
+  , VerExMatch()
   , CaptureGroup()
   -- VerEx combinators
   , startOfLine'
@@ -20,6 +22,7 @@ module Data.String.VerEx
   , anyOf
   , some
   , many
+  , exactly
   , lineBreak
   , tab
   , word
@@ -37,16 +40,18 @@ module Data.String.VerEx
   -- Pattern matching
   , test
   , replace
-  , replaceM
+  , match
   ) where
 
 import Prelude hiding (add)
 
-import Control.Apply ((*>))
+import Control.Apply ((<*), (*>))
 import Control.Monad.Free (Free(), liftF, foldFree)
 import Control.Monad.State (State(), modify, get, put, runState)
 
+import Data.Array (index)
 import Data.Functor ((<$))
+import Data.Maybe (Maybe())
 import Data.String.Regex as R
 import Data.Tuple (fst, snd)
 
@@ -58,7 +63,7 @@ data VerExF a
   | StartOfLine Boolean a
   | EndOfLine Boolean a
   | AddFlags String a
-  | AddSubexpression VerEx a
+  | AddSubexpression (VerExM a) (a -> a)
   | Capture VerEx (CaptureGroup -> a)
 
 -- | The free monad over the `VerExF` type constructor.
@@ -70,6 +75,10 @@ type VerEx = VerExM Unit
 -- | A monadic action that constructs a Verbal Expression and returns a
 -- | replacement string.
 type VerExReplace = VerExM String
+
+-- | A monadic action that constructs a Verbal Expression and returns an
+-- | array of capture group indices.
+type VerExMatch = VerExM (Array CaptureGroup)
 
 -- | Set whether or not the expression has to start at the beginning of the
 -- | line. Default: `false`.
@@ -94,8 +103,8 @@ addFlags :: String -> VerExM Unit
 addFlags flags = liftF $ AddFlags flags unit
 
 -- | Append a sub-expression in a non-capturing group
-addSubexpression :: VerEx -> VerExM Unit
-addSubexpression inner = liftF $ AddSubexpression inner unit
+addSubexpression :: forall a. VerExM a -> VerExM a
+addSubexpression inner = liftF $ AddSubexpression inner id
 
 -- | Escape special regex characters
 escape :: String -> String
@@ -116,8 +125,8 @@ possibly :: String -> VerExM Unit
 possibly str = add $ "(?:" <> escape str <> ")?"
 
 -- | Like `possibly`, but works on a sub-VerEx.
-possiblyV :: VerEx -> VerExM Unit
-possiblyV sub = addSubexpression sub *> add "?"
+possiblyV :: forall a. VerExM a -> VerExM a
+possiblyV sub = addSubexpression sub <* add "?"
 
 -- | Match any charcter, any number of times.
 anything :: VerExM Unit
@@ -142,6 +151,10 @@ some pattern = addSubexpression pattern *> add "+"
 -- | Repeat the inner expression zero or more times.
 many :: VerEx -> VerExM Unit
 many pattern = addSubexpression pattern *> add "*"
+
+-- | Repeat the inner expression exactly the given number of times.
+exactly :: Int -> VerEx -> VerExM Unit
+exactly n pattern = addSubexpression pattern *> add ("{" <> show n <> "}")
 
 -- | Add universal line break expression.
 lineBreak :: VerExM Unit
@@ -209,20 +222,27 @@ toVerExState (EndOfLine flag a) = a <$
   modify (\s -> s { endOfLine = flag })
 toVerExState (AddFlags flags a) = a <$
   modify (\s -> s { flags = s.flags <> flags })
-toVerExState (AddSubexpression inner a) = a <$
-  modify (\s -> s { pattern = s.pattern <> "(?:" <> toString inner <> ")" })
+toVerExState (AddSubexpression inner f) = f <$> do
+  s <- get
+  let res = toRegex' s.captureGroupIndex inner
+  put s { pattern = s.pattern <> "(?:" <> R.source (res.regex) <> ")"
+        , captureGroupIndex = res.lastIndex }
+  return res.result
 toVerExState (Capture inner f) = f <$> do
   s <- get
-  put s { pattern = s.pattern <> "(" <> toString inner <> ")"
-        , captureGroupIndex = s.captureGroupIndex + 1 }
-  return (CaptureGroup s.captureGroupIndex)
+  let cg = s.captureGroupIndex
+      res = toRegex' (cg + 1) inner
+  put s { pattern = s.pattern <> "(" <> R.source (res.regex) <> ")"
+        , captureGroupIndex = res.lastIndex }
+  return (CaptureGroup cg)
 
--- | Convert a Verbal Expression to a Regular Expression and return the result
--- | of the monadic action.
-toRegex' :: forall a. VerExM a -> { result :: a, regex :: R.Regex }
-toRegex' verex = { result, regex }
+-- | Convert a Verbal Expression to a Regular Expression. Also returns the
+-- | result of the monadic action and the last capture group index. The first
+-- | argument is the first capture group index that should be used.
+toRegex' :: forall a. Int -> VerExM a -> { result :: a, regex :: R.Regex, lastIndex :: Int }
+toRegex' first verex = { result, regex, lastIndex }
   where
-    both = runState (foldFree toVerExState verex) empty
+    both = runState (foldFree toVerExState verex) (empty { captureGroupIndex = first })
     result = fst both
     verexS = snd both
 
@@ -232,10 +252,11 @@ toRegex' verex = { result, regex }
     suffix = if verexS.endOfLine then "$" else ""
 
     regex = R.regex (prefix <> verexS.pattern <> suffix) flags
+    lastIndex = verexS.captureGroupIndex
 
 -- | Convert a Verbal Expression to a Regular Expression.
 toRegex :: VerEx -> R.Regex
-toRegex verex = _.regex (toRegex' verex)
+toRegex verex = _.regex (toRegex' 1 verex)
 
 -- | Convert the pattern (without the flags) of a VerEx to a `String`.
 toString :: VerEx -> String
@@ -245,15 +266,21 @@ toString verex = R.source (toRegex verex)
 test :: VerEx -> String -> Boolean
 test verex = R.test (toRegex verex)
 
--- | Replace occurences of the `VerEx` with the first string. The replacement
--- | string can include special replacement patterns escaped with `"$"`
--- | See [reference](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace).
-replace :: VerEx -> String -> String -> String
-replace verex = R.replace (toRegex verex')
-  where verex' = verex *> addFlags "g"
-
 -- | Replace occurences of the `VerEx` with the `String` that is returned by
 -- | the monadic action.
-replaceM :: VerExReplace -> String -> String
-replaceM verex = R.replace pattern.regex pattern.result
-  where pattern = toRegex' verex
+replace :: VerExReplace -> String -> String
+replace verex = R.replace pattern.regex pattern.result
+  where pattern = toRegex' 1 verex
+
+-- | Match the `VerEx` against the string argument and (maybe) return an Array
+-- | of possible results from the specified capture groups.
+match :: VerExMatch -> String -> Maybe (Array (Maybe String))
+match verex str = do
+    matches <- maybeMatches
+    return (fromIndex matches <$> pattern.result)
+  where pattern = toRegex' 1 verex
+        maybeMatches = R.match pattern.regex str
+        fromIndex matches (CaptureGroup j) = do
+          maybeResult <- matches `index` j
+          result <- maybeResult
+          return result

@@ -34,6 +34,24 @@ type VerEx = VerExM Unit
 
 A monadic action that constructs a Verbal Expression.
 
+#### `VerExReplace`
+
+``` purescript
+type VerExReplace = VerExM String
+```
+
+A monadic action that constructs a Verbal Expression and returns a
+replacement string.
+
+#### `VerExMatch`
+
+``` purescript
+type VerExMatch = VerExM (Array CaptureGroup)
+```
+
+A monadic action that constructs a Verbal Expression and returns an
+array of capture group indices.
+
 #### `startOfLine'`
 
 ``` purescript
@@ -88,7 +106,7 @@ This combinator is called `maybe` in the original API.
 #### `possiblyV`
 
 ``` purescript
-possiblyV :: VerEx -> VerExM Unit
+possiblyV :: forall a. VerExM a -> VerExM a
 ```
 
 Like `possibly`, but works on a sub-VerEx.
@@ -140,6 +158,14 @@ many :: VerEx -> VerExM Unit
 ```
 
 Repeat the inner expression zero or more times.
+
+#### `exactly`
+
+``` purescript
+exactly :: Int -> VerEx -> VerExM Unit
+```
+
+Repeat the inner expression exactly the given number of times.
 
 #### `lineBreak`
 
@@ -241,20 +267,19 @@ Check whether a given `String` matches the Verbal Expression.
 #### `replace`
 
 ``` purescript
-replace :: VerEx -> String -> String -> String
-```
-
-Replace occurences of the `VerEx` with the first string. The replacement
-string can include special replacement patterns escaped with `"$"`
-See [reference](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace).
-
-#### `replaceM`
-
-``` purescript
-replaceM :: VerExReplace -> String -> String
+replace :: VerExReplace -> String -> String
 ```
 
 Replace occurences of the `VerEx` with the `String` that is returned by
 the monadic action.
+
+#### `match`
+
+``` purescript
+match :: VerExMatch -> String -> Maybe (Array (Maybe String))
+```
+
+Match the `VerEx` against the string argument and (maybe) return an Array
+of possible results from the specified capture groups.
 
 
