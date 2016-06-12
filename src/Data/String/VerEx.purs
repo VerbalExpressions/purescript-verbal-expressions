@@ -26,6 +26,8 @@ module Data.String.VerEx
   , tab
   , word
   , digit
+  , upper
+  , lower
   , whitespace
   , withAnyCase
   -- Capture groups
@@ -171,6 +173,18 @@ word = add "(?:\\w+)"
 -- | Adds an expression to match a single digit.
 digit :: VerExM Unit
 digit = add "\\d"
+
+-- | Adds an expression to match a single uppercase character (ASCII range).
+-- | Note that this will match uppercase and lowercase characters if
+-- | `withAnyCase` is used.
+upper :: VerExM Unit
+upper = add "[A-Z]"
+
+-- | Adds an expression to match a single lowercase character (ASCII range).
+-- | Note that this will match uppercase and lowercase characters if
+-- | `withAnyCase` is used.
+lower :: VerExM Unit
+lower = add "[a-z]"
 
 -- | Any whitespace character
 whitespace :: VerExM Unit
