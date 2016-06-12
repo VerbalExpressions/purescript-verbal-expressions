@@ -51,6 +51,8 @@ import Control.Monad.State (State(), modify, get, put, runState)
 import Data.Array (index)
 import Data.Functor ((<$))
 import Data.Maybe (Maybe())
+import Data.Either (fromRight)
+import Partial.Unsafe (unsafePartial)
 import Data.String.Regex as R
 import Data.Tuple (fst, snd)
 
@@ -105,9 +107,13 @@ addFlags flags = liftF $ AddFlags flags unit
 addSubexpression :: forall a. VerExM a -> VerExM a
 addSubexpression inner = liftF $ AddSubexpression inner id
 
+-- | Compile a regex
+regex :: String -> R.RegexFlags -> R.Regex
+regex pattern flags = unsafePartial $ fromRight $ R.regex pattern flags
+
 -- | Escape special regex characters
 escape :: String -> String
-escape = R.replace (R.regex "([\\].|*?+(){}^$\\\\:=[])" g) "\\$&"
+escape = R.replace (regex "([\\].|*?+(){}^$\\\\:=[])" g) "\\$&"
   where g = R.parseFlags "g"
 
 -- | Internal function to add a pattern to the VerEx.
@@ -185,7 +191,7 @@ findAgain (CaptureGroup ind) = add $ "(?:\\" <> show ind <> ")"
 
 -- | Replace the matched string with the given replacement.
 replaceWith :: String -> VerExReplace
-replaceWith = return
+replaceWith = pure
 
 -- | Add the contents of a given capture group in the replacement string.
 insert :: CaptureGroup -> String
@@ -221,20 +227,20 @@ toVerExState (AddSubexpression inner f) = f <$> do
   let res = toRegex' s.captureGroupIndex inner
   put s { pattern = s.pattern <> "(?:" <> R.source (res.regex) <> ")"
         , captureGroupIndex = res.lastIndex }
-  return res.result
+  pure res.result
 toVerExState (Capture inner f) = f <$> do
   s <- get
   let cg = s.captureGroupIndex
       res = toRegex' (cg + 1) inner
   put s { pattern = s.pattern <> "(" <> R.source (res.regex) <> ")"
         , captureGroupIndex = res.lastIndex }
-  return (CaptureGroup cg)
+  pure (CaptureGroup cg)
 
 -- | Convert a Verbal Expression to a Regular Expression. Also returns the
 -- | result of the monadic action and the last capture group index. The first
 -- | argument is the first capture group index that should be used.
 toRegex' :: forall a. Int -> VerExM a -> { result :: a, regex :: R.Regex, lastIndex :: Int }
-toRegex' first verex = { result, regex, lastIndex }
+toRegex' first verex = { result, regex: regex', lastIndex }
   where
     both = runState (foldFree toVerExState verex) (empty { captureGroupIndex = first })
     result = fst both
@@ -245,7 +251,7 @@ toRegex' first verex = { result, regex, lastIndex }
     prefix = if verexS.startOfLine then "^" else ""
     suffix = if verexS.endOfLine then "$" else ""
 
-    regex = R.regex (prefix <> verexS.pattern <> suffix) flags
+    regex' = regex (prefix <> verexS.pattern <> suffix) flags
     lastIndex = verexS.captureGroupIndex
 
 -- | Convert a Verbal Expression to a Regular Expression.
@@ -271,10 +277,10 @@ replace verex = R.replace pattern.regex pattern.result
 match :: VerExMatch -> String -> Maybe (Array (Maybe String))
 match verex str = do
     matches <- maybeMatches
-    return (fromIndex matches <$> pattern.result)
+    pure (fromIndex matches <$> pattern.result)
   where pattern = toRegex' 1 verex
         maybeMatches = R.match pattern.regex str
         fromIndex matches (CaptureGroup j) = do
           maybeResult <- matches `index` j
           result <- maybeResult
-          return result
+          pure result
