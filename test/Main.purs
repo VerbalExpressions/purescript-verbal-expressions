@@ -4,10 +4,19 @@ import Prelude
 import Control.Apply ((*>))
 import Data.Maybe (Maybe(..))
 
+import Control.Monad.Eff (Eff)
+import Control.Monad.Eff.Console (CONSOLE)
+
 import Test.Unit as Unit
+import Test.Unit.Main (runTest)
+import Test.Unit.Console (TESTOUTPUT)
 import Test.Unit.Assert (assert, assertFalse, equal)
 
-import Data.String.VerEx
+import Data.String.VerEx (VerEx, VerExMatch, digit, upper, lower, capture,
+                          find, match, endOfLine, some, possibly, startOfLine,
+                          exactly, replaceWith, anythingBut, replace, insert,
+                          word, whitespace, test, findAgain, withAnyCase, tab,
+                          lineBreak, many, anyOf, something, anything)
 
 url :: VerExMatch
 url = do
@@ -21,7 +30,7 @@ url = do
     anythingBut " "
   endOfLine
 
-  return [protocol, domain]
+  pure [protocol, domain]
 
 number :: VerEx
 number = do
@@ -33,7 +42,8 @@ number = do
     some digit
   endOfLine
 
-main = Unit.runTest do
+main :: Eff (console :: CONSOLE, testOutput :: TESTOUTPUT) Unit
+main = runTest do
   Unit.test "URL VerEx" do
     let isUrl = test url
     assert "should match valid URL" $ isUrl "https://www.google.com"
@@ -130,6 +140,18 @@ main = Unit.runTest do
     assert "should match any digit" $
       test (find "(" *> some digit *> find ")") "(0123456789)"
 
+  Unit.test "upper" do
+    assert "should match uppercase ASCII characters" $
+      test (find "(" *> some upper *> find ")") "(ABCDEFGHIJKLMNOPQRSTUVWXYZ)"
+    assertFalse "should not match anything else" $
+      test upper "42!#a"
+
+  Unit.test "lower" do
+    assert "should match lowercase ASCII characters" $
+      test (find "(" *> some lower *> find ")") "(abcdefghijklmnopqrstuvwxyz)"
+    assertFalse "should not match anything else" $
+      test lower "42!#A"
+
   Unit.test "number VerEx" do
     let isNumber = test number
     assert "should match a single digit" $ isNumber "1"
@@ -194,7 +216,7 @@ main = Unit.runTest do
           find "-"
           day <- capture (exactly 2 digit)
           endOfLine
-          return [year, month, day]
+          pure [year, month, day]
 
     equal (match date "2016-01-11")
           (Just [Just "2016", Just "01", Just "11"])
@@ -211,7 +233,7 @@ main = Unit.runTest do
             capture (some digit)
           endOfLine
 
-          return [intPart, floatPart]
+          pure [intPart, floatPart]
 
     equal (matchNumber "3.14")
           (Just [Just "3", Just "14"])
@@ -227,7 +249,7 @@ main = Unit.runTest do
             void $ capture digit
           find ","
           b <- capture digit
-          return [a, inner, b]
+          pure [a, inner, b]
 
     equal (matchNested "1,2,3")
           (Just [Just "1", Just "2", Just "3"])
