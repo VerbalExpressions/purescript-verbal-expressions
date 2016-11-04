@@ -46,16 +46,15 @@ module Data.String.VerEx
 
 import Prelude hiding (add)
 
-import Control.Apply ((<*), (*>))
 import Control.Monad.Free (Free(), liftF, foldFree)
 import Control.Monad.State (State(), modify, get, put, runState)
 
 import Data.Array (index)
-import Data.Functor ((<$))
 import Data.Maybe (Maybe())
 import Data.Either (fromRight)
 import Partial.Unsafe (unsafePartial)
-import Data.String.Regex as R
+import Data.String.Regex (Regex, match, replace, test, source, parseFlags, regex) as R
+import Data.String.Regex.Flags (RegexFlags) as R
 import Data.Tuple (fst, snd)
 
 newtype CaptureGroup = CaptureGroup Int

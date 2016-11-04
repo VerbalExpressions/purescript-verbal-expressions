@@ -1,10 +1,10 @@
 module Test.Main where
 
 import Prelude
-import Control.Apply ((*>))
 import Data.Maybe (Maybe(..))
 
 import Control.Monad.Eff (Eff)
+import Control.Monad.Aff.AVar (AVAR)
 import Control.Monad.Eff.Console (CONSOLE)
 
 import Test.Unit as Unit
@@ -42,7 +42,7 @@ number = do
     some digit
   endOfLine
 
-main :: Eff (console :: CONSOLE, testOutput :: TESTOUTPUT) Unit
+main :: Eff (console :: CONSOLE, testOutput :: TESTOUTPUT, avar :: AVAR) Unit
 main = runTest do
   Unit.test "URL VerEx" do
     let isUrl = test url
