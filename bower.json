@@ -15,12 +15,12 @@
     "output"
   ],
   "dependencies": {
-    "purescript-strings": "^2.0.0",
-    "purescript-free": "^3.0.0",
-    "purescript-transformers": "^2.0.0",
-    "purescript-tuples": "^3.0.0"
+    "purescript-strings": "^3.0.0",
+    "purescript-free": "^4.0.0",
+    "purescript-transformers": "^3.1.0",
+    "purescript-tuples": "^4.0.0"
   },
   "devDependencies": {
-    "purescript-test-unit": "^10.0.0"
+    "purescript-test-unit": "^11.0.0"
   }
 }

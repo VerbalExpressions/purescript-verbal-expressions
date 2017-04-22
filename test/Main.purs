@@ -178,7 +178,7 @@ main = runTest do
     let vCapture = do
           firstWord <- capture word
           whitespace
-          capture word
+          word
           whitespace
           findAgain firstWord
     assert "should match 'foo bar foo'" $
