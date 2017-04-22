@@ -51,7 +51,7 @@ number = do
     find "."
     capture (some digit)
   endOfLine
-  return [intPart, floatPart]
+  pure [intPart, floatPart]
 
 > match number "3.14"
 Just [Just "3", Just "14"]
@@ -77,7 +77,7 @@ swapWords = replace do
 > swapWords "Foo   Bar"
 "Bar   Foo"
 ```
-Note that `replaceWith` is just an alias for `return`.
+Note that `replaceWith` is just an alias for `pure`.
 
 For more examples, see the [tests](test/Main.purs).
 
