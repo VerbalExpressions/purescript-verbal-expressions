@@ -42,7 +42,7 @@ pattern = do
 This pattern matches "foo bar *foo*" but not "foo bar *baz*".
 
 ### Matching
-Here, we use the result of the monadic action to return an an array of capture groups. Note that optional capturing groups are possible:
+Here, we use the result of the monadic action to return an array of capture groups. Note that optional capturing groups are possible:
 ``` purs
 number = do
   startOfLine
