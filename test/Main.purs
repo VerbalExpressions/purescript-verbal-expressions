@@ -3,13 +3,10 @@ module Test.Main where
 import Prelude
 import Data.Maybe (Maybe(..))
 
-import Control.Monad.Eff (Eff)
-import Control.Monad.Aff.AVar (AVAR)
-import Control.Monad.Eff.Console (CONSOLE)
+import Effect (Effect)
 
 import Test.Unit as Unit
 import Test.Unit.Main (runTest)
-import Test.Unit.Console (TESTOUTPUT)
 import Test.Unit.Assert (assert, assertFalse, equal)
 
 import Data.String.VerEx (VerEx, VerExMatch, digit, upper, lower, capture,
@@ -42,7 +39,7 @@ number = do
     some digit
   endOfLine
 
-main :: Eff (console :: CONSOLE, testOutput :: TESTOUTPUT, avar :: AVAR) Unit
+main :: Effect Unit
 main = runTest do
   Unit.test "URL VerEx" do
     let isUrl = test url
