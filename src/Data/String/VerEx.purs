@@ -46,16 +46,16 @@ module Data.String.VerEx
 
 import Prelude hiding (add)
 
-import Control.Monad.Free (Free(), liftF, foldFree)
-import Control.Monad.State (State(), modify, get, put, runState)
-
+import Control.Monad.Free (Free, liftF, foldFree)
+import Control.Monad.State (State, modify, get, put, runState)
 import Data.Array (index)
-import Data.Maybe (Maybe())
+import Data.Array as Array
 import Data.Either (fromRight)
-import Partial.Unsafe (unsafePartial)
+import Data.Maybe (Maybe)
 import Data.String.Regex (Regex, match, replace, test, source, parseFlags, regex) as R
 import Data.String.Regex.Flags (RegexFlags) as R
 import Data.Tuple (fst, snd)
+import Partial.Unsafe (unsafePartial)
 
 newtype CaptureGroup = CaptureGroup Int
 
@@ -106,7 +106,7 @@ addFlags flags = liftF $ AddFlags flags unit
 
 -- | Append a sub-expression in a non-capturing group
 addSubexpression :: forall a. VerExM a -> VerExM a
-addSubexpression inner = liftF $ AddSubexpression inner id
+addSubexpression inner = liftF $ AddSubexpression inner identity
 
 -- | Compile a regex
 regex :: String -> R.RegexFlags -> R.Regex
@@ -196,7 +196,7 @@ withAnyCase = addFlags "i"
 -- | Add a new capture group which matches the given VerEx. Returns the index
 -- | of the capture group.
 capture :: VerEx -> VerExM CaptureGroup
-capture inner = liftF $ Capture inner id
+capture inner = liftF $ Capture inner identity
 
 -- | Match a previous capture group again (back reference).
 findAgain :: CaptureGroup -> VerExM Unit
@@ -289,7 +289,7 @@ replace verex = R.replace pattern.regex pattern.result
 -- | of possible results from the specified capture groups.
 match :: VerExMatch -> String -> Maybe (Array (Maybe String))
 match verex str = do
-    matches <- maybeMatches
+    matches <- Array.fromFoldable <$> maybeMatches
     pure (fromIndex matches <$> pattern.result)
   where pattern = toRegex' 1 verex
         maybeMatches = R.match pattern.regex str
